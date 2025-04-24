@@ -98,6 +98,8 @@ end_date = datetime.now()
 start_date = end_date - timedelta(days=365*3)
 data = []
 
+ibstore = bt.stores.IBStore(host='127.0.0.1', port=7496, clientId=35)
+data = ibstore.getdata(dataname='EUR.USD-CASH-IDEALPRO')
 
 interval = "1h"
 days =365

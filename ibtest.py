@@ -36,3 +36,9 @@ ib.run()
 #
 #ib.run()
 #ib.orderStatusEvent += onStatusEvent
+
+
+def MakeAnOrder(stock,price,size,tp,sl):
+    contract = Stock(stock, 'SMART','USD')
+    order= Order()
+    trade = ib.placeOrder(contract=contract)
