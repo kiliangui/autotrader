@@ -1,3 +1,4 @@
+import math
 import backtrader as bt
 
 class GlobalStrategy(bt.Strategy):
@@ -12,6 +13,7 @@ class GlobalStrategy(bt.Strategy):
             self.wins = 0
             self.losses = 0
             self.order = None
+            self.entry = None
             self.entry_price = None
             self.take_profit_price = None
             self.stop_loss_price = None
@@ -32,12 +34,21 @@ class GlobalStrategy(bt.Strategy):
             return
         if order.status in [order.Completed]:
             if order.isbuy():
-                self.log('BUY EXECUTED, %.2f' % order.executed.price)
+                #self.log('entry')
+                self.entry=order.executed.price*order.executed.size
             elif order.issell():
-                self.log('SELL EXECUTED, %.2f' % order.executed.price)
+                #self.log('SELL EXECUTED, %.2f' % order.executed.price)
+                value = abs(order.executed.price*order.executed.size)-self.entry
+                if value > 0:
+                    self.log("+ : %.2f , cash  : %.2f" % (value, self.broker.getcash()))
+                else:
+                    self.log("- : %.2f, cash  : %.2f" % (value, self.broker.getcash()))
             self.bar_executed = len(self)
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
-            self.log('Order Canceled/Margin/Rejected')
+            #self.log('Order Canceled/Margin/Rejected')
+            self.order = None
+        #else:
+            #self.log("ORDER STATUS NOT FOUND : "+order.status)
         self.order = None
     def next(self):
         self.log("NOT IMPLEMENTED")

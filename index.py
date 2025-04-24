@@ -23,7 +23,7 @@ def GetData(indice, data, params):
                         stop_loss_pct=params['stop_loss_pct'],
                         rsi_period=params['rsi_period'],
                         rsi_super=params['rsi_super'])
-    cerebro.broker.setcash(600.0)
+    cerebro.broker.setcash(1000.0)
     cerebro.broker.setcommission(commission=0.0005)
     strategies = cerebro.run()
     strat = strategies[0]
@@ -58,13 +58,11 @@ stock_codes = ["AAPL", "NVDA"]
 #rsi_supers = [55,65,69]   
 #above_sma=[0,0.03] 
 stock_codes=[
-    "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA","GOLD",
-    "NVDA", "META", "BRK-B", "V", "UNH",
-    "JNJ", "WMT", "JPM", "MA", "XOM"
+    "BTC","ETH","AMZN","CAC","NQ=F"
   ]    
 periods=[26]
-take_profit_pcts = [0.06]
-stop_loss_pcts = [ 0.03]  
+take_profit_pcts = [0.05]
+stop_loss_pcts = [ 0.015]  
 rsi_periods = [12]     
 rsi_supers = [55]         
 
@@ -101,16 +99,16 @@ start_date = end_date - timedelta(days=365*3)
 data = []
 
 
-interval = "5m"
+interval = "1h"
 days =365
-if (interval=="15m" or interval=="5m" or interval=="1m"):
-    take_profit_pcts = [0.04]
+if (interval=="30m" or interval=="15m" or interval=="5m" or interval=="1m"):
+    take_profit_pcts = [0.0454]
     stop_loss_pcts = [ 0.02]  
-    days =28
+    days =28*2
 if (interval=="1d"  or interval=="1h"):
     days=365
-    take_profit_pcts = [0.05]
-    stop_loss_pcts = [ 0.02]  
+    take_profit_pcts = [0.04]
+    stop_loss_pcts = [ 0.015]  
 
 for code in stock_codes:
     print(f"\nFetching data for {code}...")
