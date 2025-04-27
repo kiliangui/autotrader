@@ -1,4 +1,4 @@
-
+import backtrader.feeds as btfeeds
 import math
 import backtrader as bt
 import yfinance as yf
@@ -9,14 +9,25 @@ indice="GOLD"
 
 # Create a Stratey
 
-def GetData(indice, data, params):
-    for d in data:
-        d.columns = d.columns.get_level_values(0)  # Flatten yfinance multi-index
+def GetData(indice, data, params,yahoo):
+    #for d in data:
+    #    d.columns = d.columns.get_level_values(0)  # Flatten yfinance multi-index
 
     cerebro = bt.Cerebro()
     for d in data:
-        data_bt = bt.feeds.PandasData(dataname=d)
-        cerebro.adddata(data_bt)
+        data_bt = None
+        if (yahoo):
+            data_bt = bt.feeds.PandasData(dataname=d)
+        else:
+            data_bt=d
+        print("adding data")
+        
+        #cerebro.adddata(data_bt)
+        cerebro.resampledata(
+            data_bt,
+            timeframe=bt.TimeFrame.Minutes,
+            compression=8  # make it 5-minute bars
+        )
     cerebro.addstrategy(CrossingSMAStrategy,
                         period=params['period'],
                         take_profit_pct=params['take_profit_pct'],
@@ -25,13 +36,16 @@ def GetData(indice, data, params):
                         rsi_super=params['rsi_super'])
     cerebro.broker.setcash(1000.0)
     cerebro.broker.setcommission(commission=0.0005)
+    print("RUNNING CEREBRO")
+    
     strategies = cerebro.run()
+    print("CEREBRO RUNNED")
     strat = strategies[0]
     final_value = cerebro.broker.getvalue()
     total_trades = strat.wins + strat.losses
     win_rate = (strat.wins / total_trades) * 100 if total_trades > 0 else 0
     if (len(data)<4):
-        cerebro.plot(style="candle",start=params["period"])
+        cerebro.plot(style="candles")
     if (total_trades!=0 ):
         print(f'{indice}: Final Balance = ${cerebro.broker.getvalue()} | Win Rate = {win_rate:.2f}% ({strat.wins} wins / {total_trades} trades)')
     return {
@@ -58,7 +72,7 @@ stock_codes = ["AAPL", "NVDA"]
 #rsi_supers = [55,65,69]   
 #above_sma=[0,0.03] 
 stock_codes=[
-    "BTC","ETH","AMZN","CAC","NQ=F"
+    "AAPL"
   ]    
 periods=[26]
 take_profit_pcts = [0.05]
@@ -98,27 +112,40 @@ end_date = datetime.now()
 start_date = end_date - timedelta(days=365*3)
 data = []
 
-ibstore = bt.stores.IBStore(host='127.0.0.1', port=7496, clientId=35)
-data = ibstore.getdata(dataname='EUR.USD-CASH-IDEALPRO')
 
+print(data)
 interval = "1h"
 days =365
 if (interval=="30m" or interval=="15m" or interval=="5m" or interval=="1m"):
     take_profit_pcts = [0.0454]
     stop_loss_pcts = [ 0.02]  
-    days =28*2
+    days =28
 if (interval=="1d"  or interval=="1h"):
     days=365
-    take_profit_pcts = [0.04]
+    take_profit_pcts = [0.05]
     stop_loss_pcts = [ 0.015]  
 
 for code in stock_codes:
     print(f"\nFetching data for {code}...")
     end_date = datetime.now()
     start_date = end_date - timedelta(days=days)
-    data.append(yf.download(code, start=start_date, end=end_date,group_by='ticker',multi_level_index=False,interval=interval))
-    if data[-1].empty:
-        print(f"Skipping {code}, no data found.")
+    #data.append(yf.download(code, start=start_date, end=end_date,group_by='ticker',multi_level_index=False,interval=interval))
+    data.append(btfeeds.GenericCSVData(
+    dataname='/home/kiliangui/Téléchargements/archive(1)/CONCOR.csv',
+    nullvalue=0.0,
+
+    timeframe=bt.TimeFrame.Minutes,
+    compression=15,  # 1 minute
+    datetime=0,
+    open=1,
+    high=2,
+    low=3,
+    close=4,
+    volume=5,
+    openinterest=-1))
+    
+    #if data[-1].empty:
+    #   print(f"Skipping {code}, no data found.")
 if False:
     GetData(code,data,{
                             'period': 200,
@@ -141,7 +168,7 @@ else:
                             'rsi_period': rsi_period,
                             'rsi_super': rsi_super
                         }
-                        result = GetData(code, data, params)
+                        result = GetData(code, data, params,False)
                         key = f"{period}-{tp}-{sl}-{rsi_period}-{rsi_super}"
                         if (key in results.keys()):
                             result["final_balance"] += results[key]["final_balance"]

@@ -37,7 +37,7 @@ class GlobalStrategy(bt.Strategy):
                 #self.log('entry')
                 self.entry=order.executed.price*order.executed.size
             elif order.issell():
-                #self.log('SELL EXECUTED, %.2f' % order.executed.price)
+                self.log('SELL EXECUTED, %.2f' % order.executed.price)
                 value = abs(order.executed.price*order.executed.size)-self.entry
                 if value > 0:
                     self.log("+ : %.2f , cash  : %.2f" % (value, self.broker.getcash()))
