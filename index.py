@@ -1,10 +1,12 @@
+import yfinance as yf
 import backtrader.feeds as btfeeds
 import math
 import backtrader as bt
-import yfinance as yf
 from datetime import datetime, timedelta
 from strats.Bullish import BullishEngulfingStrategy
 from strats.Crossing import CrossingSMAStrategy
+import sys
+sys.setrecursionlimit(100000)
 indice="GOLD"
 
 # Create a Stratey
@@ -24,30 +26,22 @@ def GetData(indice, data, params,yahoo):
         
         #cerebro.adddata(data_bt)
         cerebro.resampledata(
-            data_bt,
-            timeframe=bt.TimeFrame.Minutes,
-            compression=8  # make it 5-minute bars
-        )
-    cerebro.addstrategy(CrossingSMAStrategy,
-                        period=params['period'],
-                        take_profit_pct=params['take_profit_pct'],
-                        stop_loss_pct=params['stop_loss_pct'],
-                        rsi_period=params['rsi_period'],
-                        rsi_super=params['rsi_super'])
-    cerebro.broker.setcash(1000.0)
-    cerebro.broker.setcommission(commission=0.0005)
+           data_bt,
+           timeframe=bt.TimeFrame.Minutes,
+           compression=120  # make it 5-minute bars
+       )
+    cerebro.addstrategy(CrossingSMAStrategy)
+    cerebro.broker.setcash(10000.0)
+    cerebro.broker.setcommission(commission=0.005)
     print("RUNNING CEREBRO")
     
     strategies = cerebro.run()
     print("CEREBRO RUNNED")
-    strat = strategies[0]
     final_value = cerebro.broker.getvalue()
-    total_trades = strat.wins + strat.losses
-    win_rate = (strat.wins / total_trades) * 100 if total_trades > 0 else 0
-    if (len(data)<4):
-        cerebro.plot(style="candles")
-    if (total_trades!=0 ):
-        print(f'{indice}: Final Balance = ${cerebro.broker.getvalue()} | Win Rate = {win_rate:.2f}% ({strat.wins} wins / {total_trades} trades)')
+    if (len(data)<40):
+        cerebro.plot(style="line")
+        pass
+    print(f'{indice}: Final Balance = ${cerebro.broker.getvalue()}')
     return {
         'symbol': indice,
         'final_balance': final_value,
@@ -71,12 +65,27 @@ stock_codes = ["AAPL", "NVDA"]
 #rsi_periods = [6,10,14,20]             # → 3 values
 #rsi_supers = [55,65,69]   
 #above_sma=[0,0.03] 
-stock_codes=[
-    "AAPL"
-  ]    
+import os
+import random
+
+folder_path = './data'
+
+# List all files in the folder
+files = os.listdir(folder_path)
+
+# Filter out directories (keep only files)
+files = [f for f in files if os.path.isfile(os.path.join(folder_path, f))]
+
+# Pick 4 random files
+stock_codes = random.sample(files, 8)
+
+print(stock_codes)
+#stock_codes=[
+#    "CERA",'ZEEL',"WHIRLPOOL","WIPRO","VINATIORGA","TITAN","SUPRAJIT","TANLA"
+#  ]    
 periods=[26]
-take_profit_pcts = [0.05]
-stop_loss_pcts = [ 0.015]  
+take_profit_pcts = [0.1]
+stop_loss_pcts = [ 0.02]  
 rsi_periods = [12]     
 rsi_supers = [55]         
 
@@ -131,18 +140,18 @@ for code in stock_codes:
     start_date = end_date - timedelta(days=days)
     #data.append(yf.download(code, start=start_date, end=end_date,group_by='ticker',multi_level_index=False,interval=interval))
     data.append(btfeeds.GenericCSVData(
-    dataname='/home/kiliangui/Téléchargements/archive(1)/CONCOR.csv',
-    nullvalue=0.0,
+   dataname='./data/'+code,
+   nullvalue=0.0,
 
-    timeframe=bt.TimeFrame.Minutes,
-    compression=15,  # 1 minute
-    datetime=0,
-    open=1,
-    high=2,
-    low=3,
-    close=4,
-    volume=5,
-    openinterest=-1))
+   timeframe=bt.TimeFrame.Minutes,
+   compression=15,  # 1 minute
+   datetime=0,
+   open=1,
+   high=2,
+   low=3,
+   close=4,
+   volume=5,
+   openinterest=-1))
     
     #if data[-1].empty:
     #   print(f"Skipping {code}, no data found.")

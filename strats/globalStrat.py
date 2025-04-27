@@ -1,55 +1,65 @@
-import math
 import backtrader as bt
-
 class GlobalStrategy(bt.Strategy):
-    params = (
-        ('period', 200),
-        ('take_profit_pct', 0.02),  # 2%
-        ('stop_loss_pct', 0.006),    # 1%
-        ('rsi_period',14),
-        ('rsi_super',65)
-    )
-    def __init__(self):
-            self.wins = 0
-            self.losses = 0
-            self.order = None
-            self.entry = None
-            self.entry_price = None
-            self.take_profit_price = None
-            self.stop_loss_price = None
-            
+    """
+    Wrapper for `bt.Strategy` to log orders and perform other generic tasks.
+    """
 
-    def log(self, txt, dt=None):
-        dt = dt or self.datas[0].datetime.date(0)
-        print(f'{dt.isoformat()}, {txt}')
-    def notify_trade(self, trade):
-        if not trade.isclosed:
-            return
-        if trade.pnl > 0:
-            self.wins += 1
-        else:
-            self.losses += 1
+    params = {
+        'riskfreerate': 0.035,
+        'cheat_on_open': False,
+        'verbose': False
+    }
+
+    def __init__(self, kwargs=None):
+        bt.Strategy.__init__(self)
+        self.order = None
+        self.buyprice = None
+        self.buycomm = None
+        self.order_rejected = False
+        self.verbose = self.params.verbose
+
+    def log(self, txt, date=None):
+        if self.verbose:
+            date = date or self.data.datetime.date(0)
+            print('{}, {}'.format(date.isoformat(), txt))
+
     def notify_order(self, order):
         if order.status in [order.Submitted, order.Accepted]:
+            # Buy/Sell order submitted/accepted to/by broker - Nothing to do
             return
+
+        # Check if an order has been completed
+        # Attention: broker could reject order if not enought cash
         if order.status in [order.Completed]:
             if order.isbuy():
-                #self.log('entry')
-                self.entry=order.executed.price*order.executed.size
-            elif order.issell():
-                self.log('SELL EXECUTED, %.2f' % order.executed.price)
-                value = abs(order.executed.price*order.executed.size)-self.entry
-                if value > 0:
-                    self.log("+ : %.2f , cash  : %.2f" % (value, self.broker.getcash()))
-                else:
-                    self.log("- : %.2f, cash  : %.2f" % (value, self.broker.getcash()))
-            self.bar_executed = len(self)
+                self.log('BUY {}\t{:.2f}\t  Cost: {:.2f}\tComm: {:.2f}'.format(
+                    order.data._name,
+                    order.executed.price,
+                    order.executed.value,
+                    order.executed.comm))
+                self.buyprice = order.executed.price
+                self.buycomm = order.executed.comm
+            if order.issell():
+                self.log('SELL {}\t{:.2f}\t  Cost: {:.2f}\tComm: {:.2f}'.format(
+                    order.data._name,
+                    order.executed.price,
+                    order.executed.value,
+                    order.executed.comm))
+
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
-            #self.log('Order Canceled/Margin/Rejected')
-            self.order = None
-        #else:
-            #self.log("ORDER STATUS NOT FOUND : "+order.status)
+            status_reason = {
+                order.Canceled: 'Canceled',
+                order.Margin: 'Margin Called',
+                order.Rejected: 'Rejected'
+            }
+            self.log('Order {}: {} {}'.format(
+                status_reason[order.status],
+                'BUY' if order.isbuy() else 'SELL',
+                order.data._name
+            ))
+            self.log('Cash: {:.2f}, Order: {:.2f}'.format(self.broker.get_cash(),
+                                                          (order.price or 0) * (order.size or 0)))
+            self.order_rejected = True
+
+        # Write down: no pending order
         self.order = None
-    def next(self):
-        self.log("NOT IMPLEMENTED")
-        
